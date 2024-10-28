@@ -1,0 +1,66 @@
+import numpy as np
+import pandas as pd
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler
+from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
+from sklearn.linear_model import LogisticRegression
+from sklearn.metrics import accuracy_score, precision_score, recall_score, confusion_matrix
+import matplotlib.pyplot as plt
+
+wine_data = pd.read_csv('wine.csv')
+features = wine_data.drop(columns='Target')
+labels = wine_data['Target']
+
+X_train, X_test, y_train, y_test = train_test_split(features, labels, test_size=0.3, random_state=42, stratify=labels)
+
+scaler = StandardScaler()
+X_train_scaled = scaler.fit_transform(X_train)
+X_test_scaled = scaler.transform(X_test)
+
+lda_model = LinearDiscriminantAnalysis(n_components=2)
+X_train_lda = lda_model.fit_transform(X_train_scaled, y_train)
+X_test_lda = lda_model.transform(X_test_scaled)
+
+logistic_model = LogisticRegression(max_iter=200)
+logistic_model.fit(X_train_lda, y_train)
+
+y_pred_lda = lda_model.predict(X_test_scaled)
+accuracy_lda = accuracy_score(y_test, y_pred_lda)
+precision_lda = precision_score(y_test, y_pred_lda, average='weighted')
+recall_lda = recall_score(y_test, y_pred_lda, average='weighted')
+conf_matrix_lda = confusion_matrix(y_test, y_pred_lda)
+
+print("LDA Model Evaluation:")
+print(f"Accuracy: {accuracy_lda:.2f}")
+print(f"Precision: {precision_lda:.2f}")
+print(f"Recall: {recall_lda:.2f}")
+print("Confusion Matrix:")
+print(conf_matrix_lda)
+
+y_pred_logistic = logistic_model.predict(X_test_lda)
+accuracy_logistic = accuracy_score(y_test, y_pred_logistic)
+precision_logistic = precision_score(y_test, y_pred_logistic, average='weighted')
+recall_logistic = recall_score(y_test, y_pred_logistic, average='weighted')
+conf_matrix_logistic = confusion_matrix(y_test, y_pred_logistic)
+
+print("\nLogistic Regression Model Evaluation:")
+print(f"Accuracy: {accuracy_logistic:.2f}")
+print(f"Precision: {precision_logistic:.2f}")
+print(f"Recall: {recall_logistic:.2f}")
+print("Confusion Matrix:")
+print(conf_matrix_logistic)
+
+xx, yy = np.meshgrid(np.linspace(X_train_lda[:, 0].min() - 1, X_train_lda[:, 0].max() + 1, 100),
+                     np.linspace(X_train_lda[:, 1].min() - 1, X_train_lda[:, 1].max() + 1, 100))
+
+grid_points = np.c_[xx.ravel(), yy.ravel()]
+Z_logistic = logistic_model.predict(grid_points)
+Z_logistic = Z_logistic.reshape(xx.shape)
+
+plt.figure(figsize=(12, 6))
+plt.contourf(xx, yy, Z_logistic, alpha=0.3, cmap=plt.cm.coolwarm)
+plt.scatter(X_train_lda[:, 0], X_train_lda[:, 1], c=y_train, edgecolor='k', marker='o')
+plt.title('Logistic Regression Decision Boundaries in LDA 2D Space')
+plt.xlabel('LD1')
+plt.ylabel('LD2')
+plt.show()
